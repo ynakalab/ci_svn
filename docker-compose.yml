@@ -1,0 +1,18 @@
+version: "3"
+services:
+
+  webserv:
+    build: ./_sphinx
+    container_name: sphinx
+    hostname: sphinx
+    restart: always
+    ports:
+      - "18080:80"
+    #volumes:
+    #  - ./volume/root:/root
+    tty: true
+    command: >
+      sh -c "/etc/init.d/nginx start && bash"
+    environment:
+      TZ: Asia/Tokyo
+

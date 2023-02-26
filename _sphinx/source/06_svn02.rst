@@ -1,0 +1,39 @@
+#####################################
+Subversion - Jenkins - SonarQube 連携
+#####################################
+
+=================================
+Subversion フックスクリプトの設定
+=================================
+
+| Subversion リポジトリへのコミット完了時、Jenkins に通知するフックスクリプトを登録します。
+| Jenkins へのアクセスを許可するためのユーザID、APIキー、ジョブ名を登録しておく必要があります。
+
+1. Subversion に入る
+
+    .. code-block:: bash
+
+        docker exec -it svn bash
+
+2. フックスクリプト作成
+
+    .. code-block:: bash
+
+        cat<<EOF >/var/svnroot/python-test/hooks/post-commit
+        #!/bin/sh
+
+        user=jenkins 接続ユーザ名
+        api_token=jenkins APIトークン
+        job=プロジェクト名
+
+        curl -X POST -u \${user}:\${api_token} http://jenkins:8080/job/\${job}/build
+        EOF
+
+3. フックスクリプトの権限調整
+
+    .. code-block:: bash
+
+        chown www-data:www-data /var/svnroot/python-test/hooks/post-commit
+        chmod +x /var/svnroot/python-test/hooks/post-commit
+
+ここまでの設定を終えると、Subversion にコミットを契機に Jenkins で自動テスト⇒ SonarQube でコード解析、を行ってくれるようになるはずです。

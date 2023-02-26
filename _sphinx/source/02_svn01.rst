@@ -1,0 +1,100 @@
+###############
+Subversion 設定
+###############
+
+================
+リポジトリ作成例
+================
+
+1. Subversion コンテナに入る
+
+    .. code-block:: bash
+
+        docker exec -it svn bash
+
+2. リポジトリの作成
+
+    .. code-block:: bash
+
+        mkdir -p /var/svnroot/python-test/
+        svnadmin create /var/svnroot/python-test/
+        svn mkdir file:///var/svnroot/python-test/trunk \
+            file:///var/svnroot/python-test/tags        \
+            file:///var/svnroot/python-test/branches    \
+            -m 'Create trunk, tags, and branches.'
+        svn copy file:///var/svnroot/python-test/trunk       \
+            file:///var/svnroot/python-test/branches/2022-03 \
+            -m 'Create test branche.'
+
+3. Subversion のユーザ／パスワード登録
+
+    .. code-block:: bash
+
+        htpasswd -cm /var/svnroot/.htpasswd svnadmin
+
+4. ユーザ権限設定
+
+    .. code-block:: bash
+
+        chown -R www-data:www-data /var/svnroot/python-test/
+
+5. Subversion コンテナから出る
+
+    .. code-block:: bash
+
+        exit
+
+
+===========================
+Apache の設定 (mod_dav_svn)
+===========================
+
+| 　コンテナ内の設定ファイルを編集した場合、コンテナの再作成をした時に標準構成に戻されます。このため、コンテナの外 (_svn/etc.apache2.sites-enabled/svnroot.conf) で設定ファイルを作成しておき、コンテナ作成時にコピーするようにしています。
+| Dockerfile のコピーコマンドでコピーしているので、_svn/etc.apache2.sites-enabled/svnroot.conf 変更後、コンテナを再作成します。
+
+.. code-block:: xml
+
+    ### Pythonテストリポジトリ
+    <Location /python-test>
+    DAV svn
+    SVNPath /var/svnroot/python-test
+
+    # Limit write permission to list of valid users.
+    <LimitExcept GET PROPFIND OPTIONS REPORT>
+        # Require SSL connection for password protection.
+        # SSLRequireSSL
+
+        AuthType Basic
+        AuthName "WebDAV/Subversion Authorization"
+        AuthUserFile /var/svnroot/.htpasswd
+        Require valid-user
+    </LimitExcept>
+    </Location>
+
+
+======
+その他
+======
+
+ViewVC の設定
+*************
+
+ViewVC を使用する場合は、ViewVC の設定ファイル (_svn/etc.apache2.sites-enabled/svnroot.conf) に、作成したリポジトリを登録しておくと、コンテナ再作成時に読み込みます。
+
+.. code-block:: text
+
+    108 ## Example:
+    109 ## svn_roots = svnrepos: /opt/svn/,
+    110 ##             anotherrepos: /usr/local/svn/repos2
+    111 ##
+    112 svn_roots = python-test: /var/svnroot/python-test    # <<< ここに設定する
+    113
+    114 ## root_parents: Specifies a list of directories under which any
+    115 ## number of repositories may reside.  You can specify multiple root
+    116 ## parents separated by commas or new lines, each of which is of the
+
+
+クライアントアプリ
+******************
+
+* `TortoiseSVN Project Top Page - OSDN <https://osdn.net/projects/tortoisesvn/>`_
